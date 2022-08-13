@@ -75,6 +75,13 @@
             <version>3.19.2</version>
         </dependency>
 
+        <!--redis chache-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>2.4.3</version>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -20,6 +20,10 @@ import MindStore.persistence.repositories.Product.CategoryRepository;
 import MindStore.persistence.repositories.Product.ProductRepository;
 import MindStore.persistence.repositories.Product.RatingRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -47,13 +51,20 @@ public class UserServiceImp implements UserServiceI {
     private RoleRepository roleRepository;
     private RatingRepository ratingRepository;
     private MainConverterI mainConverter;
+    private CacheManager cacheManager;
     private DecimalFormat decimalFormat;
     private PasswordEncoder encoder;
     private final CheckAuth checkAuth;
 
     @Override
+    /*
+    apagar user, fazer update a user ou
+    application.properties para tempo na cache
+     */
+    @Cacheable("products")
     public List<ProductDto> getAllProducts(String direction, String field, int page, int pageSize) {
         //valida parametros das paginas (classe a parte), italico é static
+        System.out.println("Fetching products from DB");
         validatePages(page, pageSize);
 
         List<Product> products;
@@ -70,7 +81,9 @@ public class UserServiceImp implements UserServiceI {
     }
 
     @Override
+    @Cacheable(key = "#title", value = "products")
     public List<ProductDto> getProductsByTitle(String title, String direction, int page, int pageSize) {
+
         validatePages(page, pageSize);
 
         List<Product> productsList = this.productRepository.findByTitleLike(title);
@@ -89,6 +102,7 @@ public class UserServiceImp implements UserServiceI {
     }
 
     @Override
+    @Cacheable(key = "#category", value = "products")
     public List<ProductDto> getProductByCategory(String category, String direction, int page, int pageSize) {
         Category categoryEntity = this.categoryRepository.findByCategory(category)
                 .orElseThrow(() -> new NotFoundException("Category not found"));
@@ -112,6 +126,7 @@ public class UserServiceImp implements UserServiceI {
     }
 
     @Override
+    @Cacheable(key = "#id", value = "products")
     public ProductDto getProductById(Long id) {
         Product product = this.productRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Product not found"));
@@ -120,6 +135,7 @@ public class UserServiceImp implements UserServiceI {
     }
 
     @Override
+    @Cacheable(key = "#id", value = "categories")
     public CategoryDto getCategoryById(int id) {
         Category category = this.categoryRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Category not found"));
@@ -128,6 +144,7 @@ public class UserServiceImp implements UserServiceI {
     }
 
     @Override
+    @Cacheable(key = "#userId", value = "shoppingcart")
     public List<ProductDto> getShoppingCart(Long userId) {
         this.checkAuth.checkUserId(userId);
 
@@ -140,6 +157,7 @@ public class UserServiceImp implements UserServiceI {
     }
 
     @Override
+    @Cacheable(key = "#userId", value = "shoppingcartprice")
     public String getCartTotalPrice(Long userId) {
         this.checkAuth.checkUserId(userId);
 
@@ -166,6 +184,9 @@ public class UserServiceImp implements UserServiceI {
 
         userToSave.setRoleId(role);
         userToSave.setPassword(this.encoder.encode(userToSave.getPassword()));
+
+        clearUserCache();
+
         this.userRepository.save(userToSave);
 
         return this.mainConverter.converter(userToSave, UserDto.class);
@@ -197,6 +218,10 @@ public class UserServiceImp implements UserServiceI {
         if (payment < totalPrice)
             return new ResponseEntity<>("You don't have enough money", HttpStatus.EXPECTATION_FAILED);
 
+        //limpar as caches
+        clearShoppingCartCache();
+        clearShoppingCartPriceCache();
+
         user.getShoppingCart().forEach(Product::decreaseStock);
         user.setShoppingCart(new ArrayList<>());
         this.userRepository.save(user);
@@ -205,6 +230,7 @@ public class UserServiceImp implements UserServiceI {
     }
 
     @Override
+    @CacheEvict(key = "#id", value = "users")
     public UserDto updateUser(Long id, UserUpdateDto userUpdateDto) {
         this.checkAuth.checkUserId(id);
 
@@ -215,6 +241,8 @@ public class UserServiceImp implements UserServiceI {
 
         if (userUpdateDto.getPassword() != null)
             updatedUser.setPassword(this.encoder.encode(userUpdateDto.getPassword()));
+
+        clearUserCache();
 
         this.userRepository.save(updatedUser);
 
@@ -248,6 +276,9 @@ public class UserServiceImp implements UserServiceI {
 
         product.getRatingId().setRate(newRatingFormatted);
         product.getRatingId().setCount(ratingCount + 1);
+
+        clearProductCache();
+
         this.productRepository.save(product);
 
         //product.getRatingId() vai buscar o objeto rating
@@ -302,6 +333,9 @@ public class UserServiceImp implements UserServiceI {
             throw new NotFoundException("No stock on this product");
         }
 
+        clearShoppingCartCache();
+        clearShoppingCartPriceCache();
+
         user.addProductToCart(product);
         this.userRepository.save(user);
 
@@ -320,6 +354,9 @@ public class UserServiceImp implements UserServiceI {
 
         if (!user.getShoppingCart().contains(product))
             throw new NotFoundException("Product not found on the shopping cart");
+
+        clearShoppingCartCache();
+        clearShoppingCartPriceCache();
 
         user.removeProductFromCart(product);
         this.userRepository.save(user);
@@ -399,5 +436,25 @@ public class UserServiceImp implements UserServiceI {
                         //sort com base na direção e no field do objeto (title, id)
                         .withSort(Sort.by(direction, field))
         );
+    }
+
+    private void clearUserCache() {
+        Cache userCache = this.cacheManager.getCache("users");
+        if(userCache!=null)userCache.clear();
+    }
+
+    private void clearShoppingCartCache() {
+        Cache shoppingCartCache = this.cacheManager.getCache("shoppingcart");
+        if(shoppingCartCache!=null)shoppingCartCache.clear();
+    }
+
+    private void clearShoppingCartPriceCache() {
+        Cache shoppingCartPriceCache = this.cacheManager.getCache("shoppingcartprice");
+        if(shoppingCartPriceCache!=null)shoppingCartPriceCache.clear();
+    }
+
+    private void clearProductCache() {
+        Cache productCache = this.cacheManager.getCache("products");
+        if(productCache!=null)productCache.clear();
     }
 }
