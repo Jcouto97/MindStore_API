@@ -16,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("api/v1/admins")
 @AllArgsConstructor
+
 public class AdminController {
     private AdminServiceI adminService;
 
