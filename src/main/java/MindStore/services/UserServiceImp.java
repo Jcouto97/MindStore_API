@@ -36,10 +36,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import static MindStore.helpers.FindBy.*;
 import static MindStore.helpers.ValidateParams.validatePages;
 
@@ -62,6 +60,7 @@ public class UserServiceImp implements UserServiceI {
     @Cacheable("products")
     @Override
     public List<ProductDto> getAllProducts(String direction, String field, int page, int pageSize) {
+        System.out.println("Getting products from DB");
         validatePages(page, pageSize);
 
         List<Product> products;
