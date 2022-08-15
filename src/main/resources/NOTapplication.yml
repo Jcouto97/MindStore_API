@@ -10,11 +10,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:create-drop}
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
       show-sql: true
   datasource:
     platform: postgres
-    url: jdbc:postgresql://localhost:5432/MindStoreDB
-    username: user
-    password: password
+    url: jdbc:postgresql://ec2-54-228-218-84.eu-west-1.compute.amazonaws.com:5432/d8co7shqt1pm28
+    username: kkxjthpwefctai
+    password: 60c06947b5d5e7266a9f49a495563ea1cdda01ffc92ac76b6d19841402e15a23
     driverClassName: org.postgresql.Driver
