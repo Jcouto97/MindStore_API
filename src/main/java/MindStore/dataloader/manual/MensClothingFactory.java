@@ -16,6 +16,8 @@ public class MensClothingFactory {
                                                      AverageRatingRepository avRatingRepository,
                                                      IndividualRatingRepository indRatingRepository) {
         //Rating 1
+
+        //para receber ratings random dos users
         List<Product> products = new ArrayList<>();
         int count = (int) (Math.random() * 8);
         List<IndividualRating> userRatings = new ArrayList<>();
@@ -52,6 +54,8 @@ public class MensClothingFactory {
 
         products.add(product);
 
+        //guarda ratings no rep
+        //produtos depois guardam-se no rep no data loader (é igual)
         if (avRatingRepository.findByProductTitle(product.getTitle()).isEmpty()) {
             avRatingRepository.saveAndFlush(averageRating1);
             userRatings.forEach(x -> x.setAverageRatingId(averageRating1));

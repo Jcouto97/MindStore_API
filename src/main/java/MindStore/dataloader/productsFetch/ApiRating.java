@@ -2,6 +2,8 @@ package MindStore.dataloader.productsFetch;
 
 import lombok.*;
 
+//objeto dentro de api product
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder

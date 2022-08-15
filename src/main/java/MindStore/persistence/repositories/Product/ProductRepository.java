@@ -30,6 +30,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "LIMIT :pageSize OFFSET :offset", nativeQuery = true)
     List<Product> findAllByCategory(int categoryId, int pageSize, int offset);
 
+    //junta a tabela average ratings com tabela products, ordena por ascendente, limit qts queres por pagina
+    //:pagesize e :offset sao variaveis que podem ser usadas na funçao
     @Query(value = "SELECT * FROM products " +
             "INNER JOIN average_ratings " +
             "ON products.rating_id_fk = average_ratings.id " +

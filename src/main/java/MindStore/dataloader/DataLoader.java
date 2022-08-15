@@ -27,6 +27,8 @@ import static MindStore.dataloader.manual.UsersFactory.generateUsers;
 import static MindStore.dataloader.manual.WomensClothingFactory.womanClothingGenerator;
 import static MindStore.dataloader.productsFetch.ExternalApiFetch.externalApi;
 
+//aqui chamamos as funçoes estaticas de todas as classes para popular a base de dados (as entidades a mao e da API externa)
+
 @RequiredArgsConstructor
 @Component
 public class DataLoader implements ApplicationRunner {
@@ -43,9 +45,13 @@ public class DataLoader implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+
+        //ver se o product rep ja tem 5 (nr aleatorio) produtos, se tiver é porque ja esta populado,
+        //pq antes de ter o produto ja tem os ratings
         if (!this.productRepository.findAllByRatingASC(5, 0).isEmpty())
             return;
 
+        //try catch caso haja colisoes na base de dados para app n partir
         try {
             //Roles
             Role userRole = Role.builder()
@@ -58,6 +64,8 @@ public class DataLoader implements ApplicationRunner {
 
             List.of(userRole, adminRole)
                     .forEach(role -> {
+                        //para ter a certeza que nao esta nada no rep para ter a certeza que data loader nao estoura
+                        //qd commit 2x com update no yml
                         if (this.roleRepository.findByRoleType(role.getRoleType()).isEmpty())
                             this.roleRepository.saveAndFlush(role);
                     });

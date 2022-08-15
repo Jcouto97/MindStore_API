@@ -75,6 +75,8 @@ public class UserServiceImp implements UserServiceI {
         if (!ProductFieldsEnum.FIELDS.contains(field))
             throw new NotFoundException("Field not found");
 
+        //1 pagina nao saltas nenhum a frente, na segunda pagina saltas x * nr de elementos que tens por pagina
+        //para ir apartir dai
         if (field.equals(ProductFieldsEnum.RATING)) {
             int offset = (page - 1) * pageSize;
 
