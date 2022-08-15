@@ -5,13 +5,14 @@ import lombok.*;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import java.io.Serializable;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Getter
 @Setter
-public class AverageRatingDto {
+public class AverageRatingDto implements Serializable {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private int id;

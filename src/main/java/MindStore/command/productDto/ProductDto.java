@@ -4,13 +4,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import javax.validation.constraints.*;
+import java.io.Serializable;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Getter
 @Setter
-public class ProductDto {
+public class ProductDto implements Serializable {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;

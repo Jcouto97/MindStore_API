@@ -10,6 +10,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.io.Serializable;
 import java.time.LocalDate;
 
 @AllArgsConstructor
@@ -17,7 +18,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @SuperBuilder
-public class UserDto extends PersonDto {
+public class UserDto extends PersonDto implements Serializable {
 
     @NotEmpty
     @Size(min = 5, max = 40, message = "Address should have at least 5 characters")

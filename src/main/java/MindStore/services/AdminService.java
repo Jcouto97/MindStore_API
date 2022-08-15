@@ -29,6 +29,9 @@ import MindStore.persistence.repositories.Product.ProductRepository;
 import MindStore.persistence.repositories.Person.UserRepository;
 import MindStore.persistence.repositories.Product.AverageRatingRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,9 +55,12 @@ public class AdminService implements AdminServiceI {
     private MainConverterI converter;
     private PasswordEncoder encoder;
     private final CheckAuth checkAuth;
+    private CacheManager cacheManager;
 
     @Override
+    @Cacheable("products")
     public List<ProductDto> getAllProducts(String direction, String field, int page, int pageSize) {
+        System.out.println("Fetching from Database");
         validatePages(page, pageSize);
 
         List<Product> products;
@@ -68,6 +74,7 @@ public class AdminService implements AdminServiceI {
     }
 
     @Override
+    @Cacheable(key = "#page", value = "products")
     public List<ProductDto> getAllProductsByPrice(String direction, int page, int pageSize, int minPrice, int maxPrice) {
         validatePages(page, pageSize);
 
@@ -87,6 +94,7 @@ public class AdminService implements AdminServiceI {
         return this.converter.listConverter(products, ProductDto.class);
     }
 
+    @Cacheable(key = "#field", value = "products")
     private List<Product> findProducts(Sort.Direction direction, String field, int page, int pageSize) {
         if (!ProductFieldsEnum.FIELDS.contains(field))
             throw new NotFoundException("Field not found");
@@ -107,19 +115,23 @@ public class AdminService implements AdminServiceI {
     }
 
     @Override
+    @Cacheable(key = "#id", value = "products")
     public ProductDto getProductById(Long id) {
         Product product = findProductById(id, this.productRepository);
         return this.converter.converter(product, ProductDto.class);
     }
 
     @Override
+    @Cacheable(key = "#title", value = "products")
     public List<ProductDto> getProductsByName(String title) {
         List<Product> products = this.productRepository.findByTitleLike(title);
         if (products.isEmpty()) throw new NotFoundException("Product not found");
         return this.converter.listConverter(products, ProductDto.class);
     }
 
+
     @Override
+    @Cacheable("users")
     public List<UserDto> getAllUsers(String direction, String field, int page, int pageSize) {
         validatePages(page, pageSize);
 
@@ -144,12 +156,14 @@ public class AdminService implements AdminServiceI {
     }
 
     @Override
+    @Cacheable(key = "#id", value = "users")
     public UserDto getUserById(Long id) {
         User user = findUserById(id, this.userRepository);
         return this.converter.converter(user, UserDto.class);
     }
 
     @Override
+    @Cacheable(key = "#name", value = "users")
     public List<UserDto> getUsersByName(String name) {
         List<User> user = this.userRepository.findAllByName(name);
         if (user.isEmpty()) throw new NotFoundException("User not found");
@@ -168,6 +182,8 @@ public class AdminService implements AdminServiceI {
         Admin admin = this.converter.converter(adminDto, Admin.class);
         admin.setRoleId(role);
         admin.setPassword(this.encoder.encode(adminDto.getPassword()));
+
+        clearAdminCache();
 
         return this.converter.converter(
                 this.adminRepository.save(admin), AdminDto.class
@@ -193,6 +209,8 @@ public class AdminService implements AdminServiceI {
 
         Product product = this.converter.converter(productDto, Product.class);
 
+        clearProductCache();
+
         this.ratingRepository.save(rating);
         product.setCategory(category);
         product.setRatingId(rating);
@@ -215,6 +233,8 @@ public class AdminService implements AdminServiceI {
         user.setRoleId(role);
         user.setPassword(this.encoder.encode(userDto.getPassword()));
 
+        clearUserCache();
+
         return this.converter.converter(
                 this.userRepository.save(user), UserDto.class
         );
@@ -235,6 +255,8 @@ public class AdminService implements AdminServiceI {
 
         if (adminUpdateDto.getPassword() != null)
             admin.setPassword(this.encoder.encode(adminUpdateDto.getPassword()));
+
+        clearAdminCache();
 
         return this.converter.converter(
                 this.adminRepository.save(admin), AdminDto.class
@@ -260,6 +282,8 @@ public class AdminService implements AdminServiceI {
         product = this.converter.updateConverter(productUpdateDto, product);
         product.setCategory(category);
 
+        clearProductCache();
+
         return this.converter.converter(
                 this.productRepository.save(product), ProductDto.class
         );
@@ -279,6 +303,8 @@ public class AdminService implements AdminServiceI {
         if (userUpdateDto.getPassword() != null)
             user.setPassword(this.encoder.encode(userUpdateDto.getPassword()));
 
+        clearUserCache();
+
         return this.converter.converter(
                 this.userRepository.save(user), UserDto.class
         );
@@ -290,6 +316,8 @@ public class AdminService implements AdminServiceI {
         product.getUsers()
                 .forEach(user -> user.removeProductFromCart(product));
 
+        clearProductCache();
+
         this.productRepository.delete(product);
         this.ratingRepository.delete(product.getRatingId());
     }
@@ -299,7 +327,25 @@ public class AdminService implements AdminServiceI {
         Product product = this.productRepository.findByTitle(title)
                 .orElseThrow(() -> new NotFoundException("Product not found"));
 
+        clearProductCache();
+
         this.productRepository.delete(product);
         this.ratingRepository.delete(product.getRatingId());
+    }
+
+    private void clearUserCache() {
+        Cache userCache = this.cacheManager.getCache("users");
+        if(userCache!=null)userCache.clear();
+    }
+
+    private void clearAdminCache() {
+        Cache adminCache = this.cacheManager.getCache("admin");
+        if(adminCache!=null)adminCache.clear();
+    }
+    //admin e product
+
+    private void clearProductCache() {
+        Cache productCache = this.cacheManager.getCache("products");
+        if(productCache!=null)productCache.clear();
     }
 }
